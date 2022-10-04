@@ -94,29 +94,7 @@ namespace SPD3303X_E
             int[] status = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             //String receive = await telnetCommand("SYSTem:STATus?", true);
             String receive = send("SYSTem:STATus?");
-            Debug.WriteLine("STATUS RECEIVE " + receive);
-            /*
-            bool[] status = new bool[10];            
-            Regex regex = new Regex(@"(?<=0x)[A-Fa-f0-9]+"); //regex for hexadecimal, to discard all following invalid characters, without 0x prefix (positive lookbehind)
-            string value = regex.Match(receive).Value;  //telnet bullshit, rejects 0 in the end.
-            if(value.Length < 2) { value = value + "0"; };
-            Debug.WriteLine("STATUS VALUE: " + value);
-            int statusCode = Convert.ToInt32(value, 16);
-            Debug.WriteLine("STATUS RESPONSE: " + Convert.ToString(statusCode, 2));
-            int mask = 512;
-            for (int i = 9; i >= 0; i--)
-            {
-                Debug.WriteLine(statusCode & mask);
-                if (((statusCode >> (9 -i) ) & 1) == 1)
-                {
-                    status[i] = true;
-                }
-                else
-                {
-                    status[i] = false;
-                }
-            }
-            */
+            Debug.WriteLine("STATUS RECEIVE " + receive);           
             try
             {
                 string[] inp = receive.Split('x');//data recived
@@ -125,11 +103,6 @@ namespace SPD3303X_E
                 {
                     status[i] = 0;
                 }
-
-                //if (inp[1].Length <= 1)//for single digit nums in order to have a normal conversion we add a hex 0 
-                //{
-                //    inp[1] += '0'; //to the end a it will normalise the data 
-                //}
                 Debug.WriteLine(inp[1]);
                 inp[1] = inp[1].Trim('\0');
                 inp[1] = inp[1].Remove(inp[1].Length - 1);
@@ -147,42 +120,12 @@ namespace SPD3303X_E
 
                 }
                 Debug.WriteLine("");
-
-                //string[] inp = receive.Split('x');//data recived
-                //for (int i = 0; i <= status.Length - 1; i++)//reset status variable
-                //{
-                //    status[i] = 0;
-                //}
-
-                //if (inp[1].Length <= 1)//for single digit nums in order to have a normal conversion we add a hex 0 
-                //{
-                //    inp[1] += '0'; //to the end a it will normalise the data 
-                //}
-                //Debug.WriteLine(inp[1]);
-                //bytes = Convert.ToString(Convert.ToInt32(inp[1], 16), 2);//hex to binary
-                //Debug.WriteLine(bytes);
-                //S_buffer = bytes.ToString().ToCharArray().Select(x => (int)Char.GetNumericValue(x)).ToArray();//split to array while casting to int
-                //Debug.WriteLine(bytes + " s_b_lngth " + S_buffer.Length);
-                //int j = status.Length - 1;
-                //for (int i = S_buffer.Length - 1; i >= 0; i--)//transfer values to starus array for prosessing 
-                //{
-                //    Debug.WriteLine(i + " j= " + j);
-                //    status[j] = S_buffer[i];
-                //    j--;
-                //}
-
-                //for (int k = 0; k <= 9; k++)//debuging stuff
-                //{
-                //    Debug.Write(status[k]);
-                //}
             }
             catch (Exception exe)
             {
                 Console.WriteLine(exe);
 
             }
-            //Instrument(hex)=>bytes(bin)=>S_buffer(int array) =>status[](output)
-
             return status;
         }
 
@@ -257,15 +200,13 @@ namespace SPD3303X_E
         /// Instrument Ididefication 
         ///</summary>
         public string getIDN()
-        {
-            //string ret = await telnetCommand("*IDN?", true);
+        {           
             string ret = send("*IDN?");
             return ret;
         }
 
         public CHANNELS getActiveChannel()
         {
-            //string ret = await telnetCommand("INSTrument?", true);
             string ret = send("INSTrument?");
             int ch = Int32.Parse(ret.Substring(2));
             switch (ch)
@@ -286,7 +227,6 @@ namespace SPD3303X_E
         ///</summary>
         public double getVoltage(CHANNELS channel)
         {
-            //double value = Double.Parse(await telnetCommand(returnChannel(channel) + ":VOLTage?", true));
             double value = Double.Parse(send(returnChannel(channel) + ":VOLTage?"));
             return value;
         }
@@ -296,7 +236,6 @@ namespace SPD3303X_E
         ///</summary>
         public double getCurrent(CHANNELS channel)
         {
-            //double value = Double.Parse(await telnetCommand(returnChannel(channel) + ":CURRent?", true));
             double value = Double.Parse(send(returnChannel(channel) + ":CURRent?"));
             return value;
         }
