@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Siglent SPD3303X-E SCPI library</Title>
+    <Authors>eimparas</Authors>
+    <Company></Company>
+    <Description>A C# library for the Siglent SPD3303X Series Bench Supply,it does not utilize the Ni Visa Driver/API , only SCPI commands.</Description>
+    <Copyright>2022</Copyright>
+    <PackageProjectUrl>https://github.com/finos2/Siglent-SPD3303X-Csharp-library</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/finos2/Siglent-SPD3303X-Csharp-library</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>siglent;psu;scpi;</PackageTags>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Version>1.0.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Docs\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
