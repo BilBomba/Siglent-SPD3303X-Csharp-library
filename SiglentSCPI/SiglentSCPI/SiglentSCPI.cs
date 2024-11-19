@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Net;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace SPD3303X_E
 {
@@ -31,6 +32,8 @@ namespace SPD3303X_E
         private int IP_PORT;
         private IPEndPoint endPoint = null;
         private Socket SCPI = null;
+
+        private static CultureInfo useDot = new CultureInfo("en-US");  // to make sure . is used as comma separator
 
         public SocketManagement(string IP_ADDRESS, int PORT)
         {
@@ -227,7 +230,7 @@ namespace SPD3303X_E
         ///</summary>
         public double getVoltage(CHANNELS channel)
         {
-            double value = Double.Parse(send(returnChannel(channel) + ":VOLTage?"));
+            double value = Double.Parse(send(returnChannel(channel) + ":VOLTage?"), CultureInfo.InvariantCulture);
             return value;
         }
 
@@ -236,7 +239,7 @@ namespace SPD3303X_E
         ///</summary>
         public double getCurrent(CHANNELS channel)
         {
-            double value = Double.Parse(send(returnChannel(channel) + ":CURRent?"));
+            double value = Double.Parse(send(returnChannel(channel) + ":CURRent?"), CultureInfo.InvariantCulture);
             return value;
         }
 
@@ -245,7 +248,7 @@ namespace SPD3303X_E
         ///</summary>
         public double getOutputVoltage(CHANNELS channel)
         {
-            double value = Double.Parse(send("MEASure:VOLTage? " + returnChannel(channel)));
+            double value = Double.Parse(send("MEASure:VOLTage? " + returnChannel(channel)), CultureInfo.InvariantCulture);
             return value;
         }
 
@@ -254,7 +257,7 @@ namespace SPD3303X_E
         ///</summary>
         public double getOutputCurrent(CHANNELS channel)
         {
-            double value = Double.Parse(send("MEASure:CURRent? " + returnChannel(channel)));
+            double value = Double.Parse(send("MEASure:CURRent? " + returnChannel(channel)), CultureInfo.InvariantCulture);
             return value;
         }
 
@@ -263,7 +266,7 @@ namespace SPD3303X_E
         ///</summary>
         public double getOutputPower(CHANNELS channel)
         {
-            double value = Double.Parse(send("MEASure:POWEr? " + returnChannel(channel)));
+            double value = Double.Parse(send("MEASure:POWEr? " + returnChannel(channel)), CultureInfo.InvariantCulture);
             return value;
         }
 
@@ -480,7 +483,8 @@ namespace SPD3303X_E
         ///</summary>
         public async Task setCurrent(CHANNELS channel, double value)
         {
-            await telnetCommand(returnChannel(channel) + ":CURRent " + value, false);
+            string svalue=Convert.ToString(value, useDot);
+            await telnetCommand(returnChannel(channel) + ":CURRent " + svalue, false);
         }
 
         ///<summary>
@@ -488,7 +492,8 @@ namespace SPD3303X_E
         ///</summary>
         public async Task setVoltage(CHANNELS channel, double value)
         {
-            await telnetCommand(returnChannel(channel) + ":VOLTage " + value, false);
+            string svalue=Convert.ToString(value, useDot);
+            await telnetCommand(returnChannel(channel) + ":VOLTage " + svalue, false);
         }
 
         ///<summary>
