@@ -28,12 +28,15 @@ namespace SPD3303X_E
 
     public class SocketManagement
     {
-        private IPAddress IP_ADDRESS = null;
+        private IPAddress IP_ADDRESS;
         private int IP_PORT;
-        private IPEndPoint endPoint = null;
-        private Socket SCPI = null;
+        private IPEndPoint endPoint;
+        private Socket? SCPI = null;
 
+        private bool CheckResponse=false;  // es kommt kein reponse
+        private const int ReceiveTimeout=1000;
         private static CultureInfo useDot = new CultureInfo("en-US");  // to make sure . is used as comma separator
+        private const int SPD3303XDelay=100;
 
         public SocketManagement(string IP_ADDRESS, int PORT)
         {
@@ -49,6 +52,7 @@ namespace SPD3303X_E
         {
             Debug.WriteLine(endPoint);
             SCPI = new Socket(IP_ADDRESS.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            SCPI.ReceiveTimeout=ReceiveTimeout;
             SCPI.Connect(endPoint);//connect to socket 
         }
         ///<summary>
@@ -64,23 +68,33 @@ namespace SPD3303X_E
         }
 
         //Private Function for Coms 
-        private async Task<string> telnetCommand(string cmd, bool wait)
+        private string telnetCommand(string cmd)
         {
+            if( SCPI==null ) return "Error not connected";
             byte[] command = Encoding.ASCII.GetBytes(cmd);
-            SCPI.Send(command, SocketFlags.None);
-            if (wait)
-            {
-                await Task.Delay(110);//DataRace reasons
+
+            // flush receivebuffer
+            while( SCPI.Available >0 ) {
                 byte[] buffer = new byte[1024];
                 SCPI.Receive(buffer, SocketFlags.None);
-                string response = Encoding.ASCII.GetString(buffer);
+            }
+            string response="";
+            SCPI.Send(command, SocketFlags.None);
+            if (CheckResponse)
+            {
+                byte[] buffer = new byte[1024];
+//                Thread.Sleep(ReceiveTimeout);//DataRace reasons
+                SCPI.Receive(buffer, SocketFlags.None);
+                response = Encoding.ASCII.GetString(buffer);
                 return response;
             }
-            return "";
+            Thread.Sleep(SPD3303XDelay);  // the siglent device is not answering without this delay
+            return response;
 
         }
         private string send(string cmd)
         {
+            if( SCPI==null ) return "Error not connected";
             string response = "";
             byte[] command = Encoding.ASCII.GetBytes(cmd);
             SCPI.Send(command, SocketFlags.None);
@@ -88,6 +102,7 @@ namespace SPD3303X_E
             byte[] buffer = new byte[1024];
             SCPI.Receive(buffer, SocketFlags.None);
             response = Encoding.ASCII.GetString(buffer);
+            Thread.Sleep(SPD3303XDelay);  // the siglent device is not answering without this delay
             return response;
         }
         //"System Status " command parser
@@ -481,83 +496,110 @@ namespace SPD3303X_E
         ///<summary>
         /// Sets the Current SetPoint: setCurrent(CHANNELS channel, double value)
         ///</summary>
-        public async Task setCurrent(CHANNELS channel, double value)
+        public void setCurrent(CHANNELS channel, double value)
         {
-            string svalue=Convert.ToString(value, useDot);
-            await telnetCommand(returnChannel(channel) + ":CURRent " + svalue, false);
+            Console.WriteLine("Set current of channel " +  (int)channel + " to " + value);
+            string svalue=value.ToString("F2", useDot);
+            string resp=telnetCommand(returnChannel(channel) + ":CURRent " + svalue);
         }
 
         ///<summary>
         /// Sets the Voltage SetPoint: setVoltage(CHANNELS channel, double value)
         ///</summary>
-        public async Task setVoltage(CHANNELS channel, double value)
+        public void setVoltage(CHANNELS channel, double value)
         {
-            string svalue=Convert.ToString(value, useDot);
-            await telnetCommand(returnChannel(channel) + ":VOLTage " + svalue, false);
+            value=Math.Round(value, 2);
+            Console.WriteLine("Set voltage of channel " +  (int)channel + " to " + value);
+            string svalue=value.ToString("F2", useDot);
+            string resp=telnetCommand(returnChannel(channel) + ":VOLTage " + svalue);
+        }
+
+        ///<summary>
+        /// Sets the Voltage SetPoint, reads the result back and compares
+        /// Returns true if set successfully: setVoltageAndCheck(CHANNELS channel, double value)
+        ///</summary>
+        public bool setVoltageAndCheck(CHANNELS channel, double value)
+        {
+            setVoltage(channel, value);
+            double res=getVoltage(channel);
+            if( res==value ) return true;
+            return false;
+        }
+
+        ///<summary>
+        /// Sets the Currentlimit SetPoint, reads the result back and compares
+        /// Returns true if set successfully: setVoltageAndCheck(CHANNELS channel, double value)
+        ///</summary>
+        public bool setCurrentAndCheck(CHANNELS channel, double value)
+        {
+            setCurrent(channel, value);
+            double res=getCurrent(channel);
+            if( res==value ) return true;
+            return false;
         }
 
         ///<summary>
         /// Sets the output status: (ON/OFF) setChannelStatus(CHANNELS channel, SWITCH status)
         ///</summary>
-        public async Task setChannelStatus(CHANNELS channel, SWITCH status)
+        public void setChannelStatus(CHANNELS channel, SWITCH status)
         {
-            await telnetCommand("OUTPut " + returnChannel(channel) + "," + returnSwitch(status), false);
+            string resp=telnetCommand("OUTPut " + returnChannel(channel) + "," + returnSwitch(status));
         }
 
         ///<summary>
         /// Sets the output mode: setChannelConnection(CONNECTION_MODE mode)
         ///</summary>
-        public async Task setChannelConnection(CONNECTION_MODE mode)
+        public void setChannelConnection(CONNECTION_MODE mode)
         {
-            await telnetCommand("OUTPut:TRACK " + returnConnectionMode(mode), false);
+            string resp=telnetCommand("OUTPut:TRACK " + returnConnectionMode(mode));
         }
 
         ///<summary>
         /// Sets the status of the waveForm Display: setWaveformDisplay(CHANNELS channel, SWITCH sWITCH)
         ///</summary>
-        public async Task setWaveformDisplay(CHANNELS channel, SWITCH sWITCH)
+        public void setWaveformDisplay(CHANNELS channel, SWITCH sWITCH)
         {
-            await telnetCommand("OUTPut:WAVE " + returnChannel(channel) + "," + returnSwitch(sWITCH), false);
+            string resp=telnetCommand("OUTPut:WAVE " + returnChannel(channel) + "," + returnSwitch(sWITCH));
         }
 
 
-        public async Task setInstrumentDHCP(SWITCH dhcp)
+        public void setInstrumentDHCP(SWITCH dhcp)
         {
-            await telnetCommand("DHCP " + returnSwitch(dhcp), false);
+            string resp=telnetCommand("DHCP " + returnSwitch(dhcp));
         }
 
 
-        public async Task setInstrumentIP(string IP)
+        public void setInstrumentIP(string IP)
         {
-            await telnetCommand("IPaddr " + IP, false);
+            string resp=telnetCommand("IPaddr " + IP);
         }
 
 
-        public async Task setInstrumentMask(string address)
+        public void setInstrumentMask(string address)
         {
-            await telnetCommand("MASKaddr " + address, false);
+            string resp=telnetCommand("MASKaddr " + address);
         }
 
 
-        public async Task setInstrumentGateway(string gateway)
+        public void setInstrumentGateway(string gateway)
         {
-            await telnetCommand("GATEaddr " + gateway, false);
+            string resp=telnetCommand("GATEaddr " + gateway);
         }
 
         ///<summary>
         /// Saves macine`s current status to memory: saveCurrentState(MEMORIES memory)
         ///</summary>
-        public async Task saveCurrentState(MEMORIES memory)
+        public void saveCurrentState(MEMORIES memory)
         {
-            await telnetCommand("*SAV " + returnMemory(memory), false);
+            string resp=telnetCommand("*SAV " + returnMemory(memory));
         }
 
         ///<summary>
         /// Recal previusly saved macine status: recallState(MEMORIES memory)
         ///</summary>
-        public async Task recallState(MEMORIES memory)
+        public void recallState(MEMORIES memory)
         {
-            await telnetCommand("*RCL " + returnMemory(memory), false);
+            string resp= telnetCommand("*RCL " + returnMemory(memory));
         }
 
     }
